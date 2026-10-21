@@ -162,6 +162,28 @@
   .badge.locked{opacity:.45}
   .badge.locked .bi{filter:grayscale(1)}
   .badge.got{border-color:var(--accent-strong);background:var(--accent-soft)}
+  /* Kalender */
+  .cal-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .cal-head b{flex:1;font-size:16px;text-align:center}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .cal-wd{font-size:11.5px;color:var(--muted);text-align:center;font-weight:600;padding-bottom:2px}
+  .cal-day{min-height:60px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;padding:4px 1px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;min-width:0}
+  .cal-day:hover{border-color:var(--accent)}
+  .cal-day.today{border-color:var(--accent);border-width:2px}
+  .cal-day.sel{background:var(--accent-soft);border-color:var(--accent)}
+  .cal-day.future{opacity:.45}
+  .cal-day .d{font-size:13px;font-weight:700;line-height:1}
+  .ck{font-size:10.5px;font-weight:700;padding:1px 4px;border-radius:4px;line-height:1.3;white-space:nowrap}
+  .ck.in{background:var(--accent-strong);color:#fff}
+  .ck.over{background:var(--danger);color:#1b0b12}
+  .ck.under{background:#2f5592;color:#fff}
+  .cal-ic{display:flex;gap:3px;align-items:center;height:14px;color:#e6d8ff}
+  .cal-ic .dot{width:6px;height:6px;margin:0;background:var(--water)}
+  .cal-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px;align-items:center}
+  .cal-legend span{display:inline-flex;align-items:center;gap:5px}
+  .cal-detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .cal-detail p{margin:6px 0;font-size:14px}
+  .cal-sets{font-size:12.5px;color:var(--muted);line-height:1.5;margin:2px 0 0 42px}
   /* Training */
   .pill{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
   .pill.solid{background:var(--accent-strong);color:#fff}
@@ -286,6 +308,7 @@
         <input type="date" id="date" aria-label="Datum">
         <button class="btn small" data-act="next" aria-label="Nächster Tag">▶</button>
         <button class="btn small" data-act="today">Heute</button>
+        <button class="btn small" data-act="open-cal" aria-label="Kalender öffnen" title="Kalender"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
       </div>
       <div class="streaks" id="streaks"></div>
     </div>
@@ -402,6 +425,7 @@
 
   <!-- VERLAUF -->
   <section id="tab-history" class="tab">
+    <div class="card" id="calendar"></div>
     <div class="card">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
         <h2 style="margin:0" id="chartTitle">Kalorien</h2>
@@ -2178,7 +2202,88 @@ function rangeDays() {
   for (let i = n - 1; i >= 0; i--) out.push(addDays(today, -i));
   return out;
 }
+/* ---------- Kalender (Essen & Training) ---------- */
+let calMonth = iso(new Date()).slice(0, 7), calSel = iso(new Date()), calFilter = 'all';
+const DUMBBELL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/></svg>';
+const kShort = k => k >= 1000 ? (k / 1000).toFixed(1).replace('.', ',') + 'k' : String(r0(k));
+// Essens-Status eines Tages relativ zum Tagesziel (±10 % = im Ziel)
+function foodStatus(d) {
+  if (!hasFood(d)) return null;
+  const k = sum(S.log[d]).kcal, g = goalFor(d);
+  return { k, g, cls: k > g * 1.1 ? 'over' : k < g * 0.9 ? 'under' : 'in', text: k > g * 1.1 ? 'über dem Ziel' : k < g * 0.9 ? 'unter dem Ziel' : 'im Ziel' };
+}
+function renderCalendar() {
+  const [y, m] = calMonth.split('-').map(Number), today = iso(new Date());
+  const first = new Date(y, m - 1, 1), daysIn = new Date(y, m, 0).getDate(), offset = (first.getDay() + 6) % 7;
+  const label = first.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const days = [...Array(daysIn)].map((_, i) => `${calMonth}-${String(i + 1).padStart(2, '0')}`);
+  const showFood = calFilter !== 'training', showTrain = calFilter !== 'food';
+  const cells = [...Array(offset)].map(() => '<span></span>').concat(days.map(d => {
+    const fs = foodStatus(d), trs = TR().log.filter(l => l.date === d), other = (S.activity[d] || []).filter(a => !a.workoutId);
+    const parts = [`${new Date(d + 'T12:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}`];
+    if (fs) parts.push(`${r0(fs.k)} kcal, ${fs.text}`);
+    if (trs.length) parts.push(trs.length === 1 ? 'Krafttraining' : `${trs.length} Krafttrainings`);
+    if (other.length) parts.push(other.map(a => a.name).join(', '));
+    return `<button type="button" class="cal-day ${d === today ? 'today' : ''} ${d === calSel ? 'sel' : ''} ${d > today ? 'future' : ''}" data-act="cal-day" data-date="${d}" aria-label="${esc(parts.join(' · '))}" aria-pressed="${d === calSel}">
+      <span class="d">${+d.slice(8)}</span>
+      ${showFood && fs ? `<span class="ck ${fs.cls}">${kShort(fs.k)}</span>` : ''}
+      <span class="cal-ic">${showTrain && trs.length ? DUMBBELL : ''}${showTrain && other.length ? '<span class="dot"></span>' : ''}</span>
+    </button>`;
+  })).join('');
+
+  // Monatsübersicht
+  const logged = days.filter(hasFood), inGoal = logged.filter(d => foodStatus(d).cls === 'in').length;
+  const trainCount = TR().log.filter(l => l.date.startsWith(calMonth)).length;
+  const sportCount = days.reduce((a, d) => a + (S.activity[d] || []).filter(x => !x.workoutId).length, 0);
+  const avg = logged.length ? logged.reduce((a, d) => a + sum(S.log[d]).kcal, 0) / logged.length : 0;
+
+  $('#calendar').innerHTML = `
+    <div class="cal-head">
+      <button class="back-btn" data-act="cal-month" data-dir="-1" aria-label="Vorheriger Monat">${BACK_ICON}</button>
+      <b>${label}</b>
+      <button class="back-btn" data-act="cal-month" data-dir="1" aria-label="Nächster Monat" style="transform:scaleX(-1)">${BACK_ICON}</button>
+    </div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="seg" role="radiogroup" aria-label="Anzeigen" style="margin:0">${[['all', 'Alles'], ['food', 'Essen'], ['training', 'Training']].map(([k, l]) =>
+        `<button type="button" role="radio" aria-checked="${k === calFilter}" class="${k === calFilter ? 'on' : ''}" data-act="cal-filter" data-f="${k}">${l}</button>`).join('')}</div>
+      ${calMonth !== today.slice(0, 7) ? '<button class="btn small" data-act="cal-today">Heute</button>' : ''}
+    </div>
+    <div class="cal-grid">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(w => `<span class="cal-wd">${w}</span>`).join('')}${cells}</div>
+    <div class="cal-legend">
+      ${showFood ? '<span><span class="ck in">kcal</span> im Ziel (±10 %)</span><span><span class="ck over">kcal</span> drüber</span><span><span class="ck under">kcal</span> drunter</span>' : ''}
+      ${showTrain ? `<span><span style="color:#e6d8ff;display:inline-flex">${DUMBBELL}</span>Krafttraining</span><span><span class="dot" style="background:var(--water);margin:0"></span> anderer Sport</span>` : ''}
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <div class="stat"><span>Tage mit Essen</span><b>${logged.length}</b></div>
+      <div class="stat"><span>Davon im Ziel</span><b>${inGoal}</b></div>
+      <div class="stat"><span>Ø kcal</span><b>${logged.length ? r0(avg).toLocaleString('de-DE') : '–'}</b></div>
+      <div class="stat"><span>Krafttrainings</span><b>${trainCount}</b></div>
+      <div class="stat"><span>Anderer Sport</span><b>${sportCount}</b></div>
+    </div>
+    ${calSel.startsWith(calMonth) ? calDetail(calSel) : ''}`;
+}
+function calDetail(d) {
+  const e = S.log[d] || [], t = sum(e), fs = foodStatus(d), trs = TR().log.filter(l => l.date === d);
+  const other = (S.activity[d] || []).filter(a => !a.workoutId), w = S.water[d] || 0;
+  const train = trs.map(l => {
+    const sets = l.ex.reduce((s, x) => s + x.sets.length, 0), vol = l.ex.reduce((s, x) => s + x.sets.reduce((v, z) => v + z.kg * z.reps, 0), 0);
+    return `<div class="list-item" style="border:0;padding-bottom:0"><span class="ico">🏋️</span><span class="name">${esc(l.name)}<small>${l.min} min · ${sets} Sätze${vol ? ` · ${r0(vol).toLocaleString('de-DE')} kg bewegt` : ''}</small></span></div>
+      <div class="cal-sets">${l.ex.map(x => `<div><b style="color:var(--text)">${esc(EX[x.id]?.name || x.id)}:</b> ${x.sets.map(s => EX[x.id]?.bw ? `${fmt(s.reps)} ${exUnit(x.id)}` : s.kg ? `${fmt(s.kg)} kg × ${fmt(s.reps)}` : `${fmt(s.reps)} Wdh.`).join(', ')}</div>`).join('')}</div>`;
+  }).join('');
+  return `<div class="cal-detail">
+    <div class="water-head"><b>${longDate(d)}</b><button class="btn small" data-act="goto-day" data-date="${d}">Im Tagebuch öffnen</button></div>
+    ${fs ? `<p>🍽️ <b>${r0(t.kcal)}</b> von ${r0(fs.g)} kcal <span class="ck ${fs.cls}" style="margin-left:4px">${fs.text}</span></p>
+      <p class="small-note" style="margin:0 0 4px 26px">Eiweiß ${fmt(t.p)} g · KH ${fmt(t.c)} g · Fett ${fmt(t.f)} g · ${e.length} ${e.length === 1 ? 'Eintrag' : 'Einträge'}</p>`
+      : '<p class="muted">🍽️ Kein Essen eingetragen</p>'}
+    ${w ? `<p>💧 ${fmt(w / 1000)} l Wasser</p>` : ''}
+    ${train || ''}
+    ${other.map(a => `<p>${esc(a.icon)} ${esc(a.name)} · ${a.name === 'Schritte' ? `${num(a.amount).toLocaleString('de-DE')} Schritte` : `${fmt(a.amount)} min`} · ${r0(a.kcal)} kcal</p>`).join('')}
+    ${!trs.length && !other.length ? '<p class="muted">🏋️ Kein Training</p>' : ''}
+  </div>`;
+}
+
 function renderHistory() {
+  renderCalendar();
   $('#rangeSeg').innerHTML = [[7, '7 Tage'], [30, '30 Tage'], [90, '90 Tage']].map(([v, l]) =>
     `<button type="button" role="radio" aria-checked="${v === histRange}" class="${v === histRange ? 'on' : ''}" data-act="range" data-range="${v}">${l}</button>`).join('');
   const days = rangeDays(), goal = S.goals.kcal;
@@ -2448,6 +2553,14 @@ document.addEventListener('click', e => {
       if (!t || !confirm(`Vorlage „${t.name}“ löschen?`)) return;
       S.templates = S.templates.filter(x => x.id !== id); save(); renderTemplates(); break;
     }
+    case 'cal-day': calSel = b.dataset.date; renderCalendar(); break;
+    case 'cal-filter': calFilter = b.dataset.f; renderCalendar(); break;
+    case 'cal-today': calMonth = iso(new Date()).slice(0, 7); calSel = iso(new Date()); renderCalendar(); break;
+    case 'cal-month': {
+      const [y, m] = calMonth.split('-').map(Number), d = new Date(y, m - 1 + num(b.dataset.dir), 1);
+      calMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; renderCalendar(); break;
+    }
+    case 'open-cal': calMonth = curDate.slice(0, 7); calSel = curDate; showTab('history'); break;
     case 'tr-plan': TR().plan = b.dataset.plan; save(); renderTraining(); break;
     case 'tr-start': startSession(TR().plan, b.dataset.unit); break;
     case 'tr-resume': setTrView('session'); break;
