@@ -202,6 +202,16 @@
   .steps-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
   .steps-list li{display:flex;gap:10px;font-size:14px;line-height:1.45}
   .steps-list .num{flex:none;width:22px;height:22px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .pe-row{display:grid;grid-template-columns:52px minmax(0,1fr) 58px 76px auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .pe-row.head{font-size:12px;font-weight:600;color:var(--muted);border:0;padding:0}
+  .pe-fig{width:52px;height:42px;border-radius:8px;background:var(--bg);border:0;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .pe-name{font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .pe-name small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .pe-tools{display:flex;align-items:center}
+  .icon-btn.plain:hover{background:var(--accent-soft);color:var(--accent)}
+  .icon-btn:disabled{opacity:.3;cursor:default}
+  @media (max-width:560px){.pe-row{grid-template-columns:44px minmax(0,1fr) 50px 64px}.pe-row .pe-tools{grid-column:1/-1;justify-content:flex-end}.pe-row.head span:last-child{display:none}.pe-fig{width:44px}}
+  .tr-thumb.added{border-color:var(--accent-strong);color:var(--accent)}
   .err-list li{display:flex;gap:8px;font-size:14px;line-height:1.45;margin-bottom:6px}
   .err-list{list-style:none;margin:0;padding:0}
   .cat-filter{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin-bottom:4px;scrollbar-width:none}
@@ -539,6 +549,15 @@
   </form>
 </dialog>
 
+<!-- Übung für eigenen Plan auswählen -->
+<dialog id="exPickDlg" aria-labelledby="exPickTitle" style="width:min(560px,calc(100vw - 32px))">
+  <h2 id="exPickTitle">Übung hinzufügen</h2>
+  <div id="exPickGroups"></div>
+  <div id="exPickList" class="tr-thumbs lib" style="max-height:52vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+  <div class="row dlg-actions"><span class="small-note" style="flex:1">Du kannst mehrere Übungen nacheinander antippen.</span>
+    <button type="button" class="btn primary" data-act="dlg-close">Fertig</button></div>
+</dialog>
+
 <!-- Online-Suche (Open Food Facts) -->
 <dialog id="offDlg" aria-labelledby="offTitle">
   <h2 id="offTitle">🌐 Online suchen</h2>
@@ -759,8 +778,94 @@ const EX = {
     to: { H: [70, 10], N: [70, 20], S: [70, 22], E: [71, 42], W: [72, 62], P: [70, 54], K: [71, 74], A: [70, 90] },
     prim: ['Waden'], sec: [],
     steps: ['Mit den Fußballen auf eine Stufe oder Platte stellen.', 'Fersen langsam unter die Stufe absenken.', 'So hoch wie möglich auf die Zehenspitzen drücken.', 'Oben kurz halten, dann langsam wieder ab.'],
-    errors: ['Zu schnell wippen', 'Nicht die volle Bewegung nutzen', 'Knie stark beugen'] }
+    errors: ['Zu schnell wippen', 'Nicht die volle Bewegung nutzen', 'Knie stark beugen'] },
+  incline: { name: 'Schrägbankdrücken (KH)', group: 'Brust', rest: 90, inc: 1,
+    bg: '<line x1="40" y1="56" x2="70" y2="92" stroke="#4a3b6b" stroke-width="6" stroke-linecap="round"/><line x1="70" y1="92" x2="94" y2="92" stroke="#4a3b6b" stroke-width="6" stroke-linecap="round"/><line x1="78" y1="92" x2="78" y2="107" stroke="#4a3b6b" stroke-width="3"/>',
+    pose: { H: [42, 50], N: [48, 60], S: [50, 62], E: [56, 44], W: [56, 24], P: [72, 86], K: [96, 82], A: [100, 106], T: [112, 106] },
+    to: { E: [64, 72], W: [58, 52] },
+    props: [{ t: 'db', at: 'W' }],
+    prim: ['Obere Brust'], sec: ['Schulter vorne', 'Trizeps'],
+    steps: ['Bank auf 30–45° stellen, Kurzhanteln auf den Oberschenkeln mit nach oben nehmen.', 'Schulterblätter zusammen, Hanteln seitlich auf Brusthöhe.', 'Hanteln schräg nach oben drücken, bis sie sich über der Brust fast berühren.', 'Langsam wieder bis auf Brusthöhe absenken.'],
+    errors: ['Bank zu steil (wird zum Schulterdrücken)', 'Hanteln oben zusammenschlagen', 'Unten zu weit absenken und die Spannung verlieren'] },
+  rdl: { name: 'Rumänisches Kreuzheben', group: 'Beine', rest: 120, inc: 2.5,
+    pose: { H: [68, 17], N: [67, 26], S: [67, 28], E: [67, 52], W: [67, 78], P: [66, 61], K: [68, 83], A: [66, 105], T: [80, 105] },
+    to: { H: [96, 38], N: [88, 44], S: [86, 46], E: [86, 68], W: [86, 90], P: [56, 60], K: [66, 82] },
+    props: [{ t: 'plate', at: 'W' }],
+    prim: ['Beinbeuger', 'Po'], sec: ['Unterer Rücken', 'Griffkraft'],
+    steps: ['Aufrecht mit der Stange vor den Oberschenkeln stehen, Knie leicht gebeugt.', 'Hüfte weit nach hinten schieben, die Stange gleitet an den Beinen nach unten.', 'Absenken, bis du eine starke Dehnung hinten im Oberschenkel spürst (etwa Schienbeinmitte).', 'Hüfte wieder nach vorn bringen und den Po oben anspannen.'],
+    errors: ['Knie werden zu stark gebeugt (wird zur Kniebeuge)', 'Runder Rücken', 'Stange entfernt sich vom Körper'] },
+  pullup: { name: 'Klimmzüge', group: 'Rücken', rest: 120, inc: 2.5, vb: '0 -18 140 130', front: true,
+    bg: '<line x1="38" y1="10" x2="122" y2="10" stroke="#4a3b6b" stroke-width="5" stroke-linecap="round"/>',
+    pose: { H: [80, 30], N: [80, 40], S: [72, 42], E: [62, 28], W: [58, 10], S2: [88, 42], E2: [98, 28], W2: [102, 10], P: [80, 72], K: [77, 88], A: [76, 104], K2: [83, 88], A2: [84, 104] },
+    to: { H: [80, 2], N: [80, 12], S: [72, 14], E: [56, 26], S2: [88, 14], E2: [104, 26], P: [80, 44], K: [77, 60], A: [76, 76], K2: [83, 60], A2: [84, 76] },
+    prim: ['Latissimus'], sec: ['Bizeps', 'Oberer Rücken', 'Rumpf'],
+    steps: ['Stange etwas breiter als schulterbreit greifen, gestreckt hängen.', 'Schulterblätter nach unten ziehen, Bauch anspannen.', 'Hochziehen, bis das Kinn über der Stange ist – Ellbogen Richtung Hüfte.', 'Kontrolliert ganz nach unten ablassen. kg = Zusatzgewicht (0 = ohne).'],
+    errors: ['Mit den Beinen Schwung holen (Kipping)', 'Nur halbe Wiederholungen', 'Schultern hängen zu den Ohren'] },
+  dips: { name: 'Dips', group: 'Brust', rest: 90, inc: 2.5,
+    bg: '<line x1="60" y1="60" x2="110" y2="60" stroke="#4a3b6b" stroke-width="4" stroke-linecap="round"/><line x1="104" y1="60" x2="104" y2="107" stroke="#4a3b6b" stroke-width="3"/>',
+    pose: { H: [77, 20], N: [75, 30], S: [75, 32], E: [76, 46], W: [76, 60], P: [70, 64], K: [64, 84], A: [78, 92] },
+    to: { H: [74, 40], N: [71, 50], S: [70, 52], E: [60, 60], P: [64, 82], K: [58, 102], A: [72, 108] },
+    prim: ['Untere Brust', 'Trizeps'], sec: ['Schulter vorne'],
+    steps: ['Mit gestreckten Armen am Barren stützen, Schultern weg von den Ohren.', 'Oberkörper leicht nach vorn neigen.', 'Absenken, bis die Oberarme etwa waagerecht sind.', 'Kraftvoll wieder hochdrücken. kg = Zusatzgewicht (0 = ohne).'],
+    errors: ['Zu tief absenken (belastet die Schultern)', 'Schultern ziehen hoch', 'Ellbogen weit nach außen'] },
+  legcurl: { name: 'Beinbeuger (liegend)', group: 'Beine', rest: 60, inc: 2.5, bg: BENCH,
+    pose: { H: [28, 70], N: [36, 72], S: [40, 73], E: [36, 86], W: [26, 86], P: [84, 73], K: [106, 73], A: [128, 73] },
+    to: { A: [112, 52] },
+    props: [{ t: 'plate', at: 'A', r: 6 }],
+    prim: ['Beinbeuger'], sec: ['Waden'],
+    steps: ['Bauchlings auf das Gerät, das Polster liegt knapp über den Fersen.', 'Hüfte fest auf die Bank drücken, Griffe halten.', 'Fersen Richtung Po ziehen.', 'Langsam wieder strecken, ohne das Gewicht abzulegen.'],
+    errors: ['Hüfte hebt vom Polster ab', 'Gewicht unten fallen lassen', 'Mit Schwung arbeiten'] },
+  legext: { name: 'Beinstrecker', group: 'Beine', rest: 60, inc: 2.5,
+    bg: '<line x1="50" y1="38" x2="52" y2="76" stroke="#4a3b6b" stroke-width="6" stroke-linecap="round"/><rect x="52" y="73" width="36" height="6" rx="3" fill="#4a3b6b"/><line x1="70" y1="79" x2="70" y2="107" stroke="#4a3b6b" stroke-width="3"/>',
+    pose: { H: [60, 22], N: [59, 32], S: [59, 34], E: [62, 52], W: [70, 68], P: [60, 68], K: [86, 70], A: [90, 94] },
+    to: { A: [110, 64] },
+    props: [{ t: 'plate', at: 'A', r: 6 }],
+    prim: ['Oberschenkel vorne'], sec: [],
+    steps: ['Rücken an die Lehne, Knie auf Höhe des Drehpunkts, Polster vorn an den Schienbeinen.', 'Griffe seitlich festhalten.', 'Beine strecken und oben kurz anspannen.', 'Langsam wieder beugen.'],
+    errors: ['Mit Schwung hochkicken', 'Po hebt vom Sitz ab', 'Oben nicht ganz strecken'] },
+  facepull: { name: 'Face Pulls', group: 'Schultern', rest: 60, inc: 2.5,
+    pose: { H: [66, 22], N: [65, 32], S: [65, 34], E: [83, 36], W: [101, 34], P: [63, 66], K: [64, 86], A: [63, 106], T: [77, 106] },
+    to: { E: [56, 24], W: [74, 20] },
+    props: [{ t: 'cable', from: [128, 34], at: 'W' }, { t: 'db', at: 'W' }],
+    prim: ['Hintere Schulter'], sec: ['Oberer Rücken', 'Rotatorenmanschette'],
+    steps: ['Seil am Kabelzug auf Kopfhöhe einhängen und mit beiden Händen greifen.', 'Einen Schritt zurück, Arme nach vorn gestreckt.', 'Seil Richtung Gesicht ziehen, Hände dabei auseinander, Ellbogen hoch.', 'Kurz halten und langsam zurück.'],
+    errors: ['Zu schweres Gewicht, Oberkörper lehnt sich zurück', 'Ellbogen sinken nach unten', 'Schultern zu den Ohren'] },
+  hipthrust: { name: 'Hip Thrust', group: 'Beine', rest: 90, inc: 5,
+    bg: '<rect x="14" y="60" width="30" height="8" rx="3" fill="#4a3b6b"/><line x1="20" y1="68" x2="20" y2="107" stroke="#4a3b6b" stroke-width="3"/><line x1="38" y1="68" x2="38" y2="107" stroke="#4a3b6b" stroke-width="3"/>',
+    pose: { H: [26, 54], N: [36, 60], S: [38, 61], E: [46, 74], W: [58, 84], P: [58, 90], K: [84, 78], A: [90, 106], T: [102, 106] },
+    to: { E: [50, 58], W: [66, 64], P: [66, 70], K: [90, 72] },
+    props: [{ t: 'plate', at: 'P', dy: -6 }],
+    prim: ['Po'], sec: ['Beinbeuger', 'Rumpf'],
+    steps: ['Mit dem oberen Rücken an eine Bank lehnen, Langhantel (mit Polster) auf der Hüfte.', 'Füße hüftbreit, Schienbeine oben etwa senkrecht.', 'Hüfte hochdrücken, bis Oberkörper und Oberschenkel eine Linie bilden – Po fest anspannen.', 'Kontrolliert absenken.'],
+    errors: ['Oben ins Hohlkreuz überstrecken', 'Füße zu weit weg oder zu nah', 'Kinn hochreißen statt Blick nach vorn'] },
+  hammer: { name: 'Hammer-Curls', group: 'Arme', rest: 60, inc: 1,
+    pose: { H: [70, 22], N: [70, 32], S: [70, 34], E: [71, 56], W: [72, 78], P: [70, 66], K: [71, 86], A: [70, 106], T: [84, 106] },
+    to: { W: [84, 40] },
+    props: [{ t: 'db', at: 'W' }],
+    prim: ['Bizeps', 'Unterarme'], sec: [],
+    steps: ['Aufrecht stehen, Kurzhanteln mit den Daumen nach vorn (neutraler Griff).', 'Ellbogen eng am Körper.', 'Hanteln hochbeugen, der Griff bleibt dabei neutral.', 'Langsam wieder ablassen.'],
+    errors: ['Schwung aus dem Oberkörper', 'Ellbogen wandern nach vorn', 'Handgelenke abknicken'] },
+  cablerow: { name: 'Kabelrudern (sitzend)', group: 'Rücken', rest: 90, inc: 2.5,
+    bg: '<rect x="36" y="84" width="30" height="6" rx="3" fill="#4a3b6b"/><line x1="108" y1="78" x2="108" y2="104" stroke="#4a3b6b" stroke-width="5" stroke-linecap="round"/>',
+    pose: { H: [60, 38], N: [58, 48], S: [58, 50], E: [78, 58], W: [98, 62], P: [52, 82], K: [80, 70], A: [104, 92] },
+    to: { H: [56, 36], N: [54, 46], S: [54, 48], E: [38, 58], W: [60, 66] },
+    props: [{ t: 'cable', from: [132, 70], at: 'W' }, { t: 'db', at: 'W' }],
+    prim: ['Mittlerer Rücken', 'Latissimus'], sec: ['Bizeps', 'Hintere Schulter'],
+    steps: ['Aufrecht sitzen, Füße an der Platte, Knie leicht gebeugt.', 'Griff mit gestreckten Armen halten, Rücken gerade.', 'Griff zum Bauch ziehen, Schulterblätter zusammendrücken.', 'Langsam wieder nach vorn lassen, ohne den Rücken zu runden.'],
+    errors: ['Mit dem Oberkörper weit nach hinten schwingen', 'Runder Rücken in der Streckung', 'Schultern hochziehen'] },
+  fly: { name: 'Kabel-Flys', group: 'Brust', rest: 60, inc: 2.5, front: true, vb: '0 -6 140 118',
+    pose: { H: [70, 22], N: [70, 32], P: [70, 64], S: [64, 35], E: [46, 40], W: [28, 38], S2: [76, 35], E2: [94, 40], W2: [112, 38], K: [66, 86], A: [64, 106], K2: [74, 86], A2: [76, 106] },
+    to: { E: [54, 50], W: [66, 58], E2: [86, 50], W2: [74, 58] },
+    props: [{ t: 'cable', from: [10, -6], at: 'W' }, { t: 'cable', from: [130, -6], at: 'W2' }, { t: 'db', at: 'W' }, { t: 'db', at: 'W2' }],
+    prim: ['Brust'], sec: ['Schulter vorne'],
+    steps: ['Zwischen zwei Kabelzügen stehen, Griffe auf Schulterhöhe oder etwas höher.', 'Ein Bein leicht vor, Oberkörper leicht nach vorn, Ellbogen leicht gebeugt.', 'Hände in einem Bogen vor der Brust zusammenführen.', 'Langsam wieder öffnen, bis du eine Dehnung in der Brust spürst.'],
+    errors: ['Arme stark beugen (wird zum Drücken)', 'Zu weit öffnen', 'Mit dem Oberkörper mitwippen'] }
 };
+const EX_GROUPS = ['Beine', 'Brust', 'Rücken', 'Schultern', 'Arme', 'Rumpf'];
+// Vorgabe für Wiederholungen beim Hinzufügen im Plan-Editor
+const defaultReps = id => EX[id].bw ? '30' : EX[id].rest >= 90 ? '6–8' : '10–12';
+// „8–12“ → [8, 12], „10“ → [10, 10]
+const repRange = s => { const n = (String(s).match(/\d+/g) || ['0']).map(Number); return [Math.min(...n), Math.max(...n)]; };
 // Pläne: Einheiten mit [Übung, Sätze, Wiederholungen]
 const PLANS = {
   gk: { name: 'Ganzkörper', desc: 'Für Einsteiger · 3× pro Woche, A und B im Wechsel', perWeek: 3, units: [
@@ -772,7 +877,12 @@ const PLANS = {
     { id: 'legs', name: 'Beine', ex: [['squat', 4, '8'], ['legpress', 3, '12'], ['lunge', 3, '10'], ['calf', 4, '15'], ['plank', 3, '45']] }] },
   ou: { name: 'Ober/Unter', desc: '4× pro Woche · Oberkörper und Unterkörper im Wechsel', perWeek: 4, units: [
     { id: 'upper', name: 'Oberkörper', ex: [['bench', 4, '8'], ['row', 4, '8'], ['ohp', 3, '10'], ['latpull', 3, '10'], ['curl', 2, '12'], ['triceps', 2, '12']] },
-    { id: 'lower', name: 'Unterkörper', ex: [['squat', 4, '6'], ['deadlift', 3, '8'], ['legpress', 3, '12'], ['lunge', 3, '10'], ['calf', 3, '15'], ['plank', 3, '45']] }] }
+    { id: 'lower', name: 'Unterkörper', ex: [['squat', 4, '6'], ['deadlift', 3, '8'], ['legpress', 3, '12'], ['lunge', 3, '10'], ['calf', 3, '15'], ['plank', 3, '45']] }] },
+  adv: { name: 'Fortgeschritten', desc: 'Ab ca. 1–2 Jahren Training · 4× pro Woche · Kraft- und Volumentage für Ober- und Unterkörper im Wechsel (PHUL). Erst das obere Ende der Wiederholungen schaffen, dann Gewicht steigern.', perWeek: 4, units: [
+    { id: 'up', name: 'Oberkörper · Kraft', ex: [['bench', 4, '4–6'], ['row', 4, '4–6'], ['ohp', 3, '6–8'], ['pullup', 3, '6–8'], ['dips', 3, '6–8'], ['curl', 2, '8–10']] },
+    { id: 'lp', name: 'Unterkörper · Kraft', ex: [['squat', 4, '4–6'], ['deadlift', 3, '3–5'], ['legpress', 3, '8–10'], ['legcurl', 3, '8–10'], ['calf', 4, '8–10']] },
+    { id: 'uh', name: 'Oberkörper · Volumen', ex: [['incline', 4, '8–12'], ['cablerow', 4, '10–12'], ['fly', 3, '12–15'], ['lateral', 4, '12–15'], ['facepull', 3, '15–20'], ['hammer', 3, '10–12'], ['triceps', 3, '10–12']] },
+    { id: 'lh', name: 'Unterkörper · Volumen', ex: [['squat', 3, '8–10'], ['rdl', 3, '8–10'], ['lunge', 3, '10–12'], ['legext', 3, '12–15'], ['legcurl', 3, '12–15'], ['hipthrust', 3, '10–12'], ['calf', 3, '12–15']] }] }
 };
 const NUTR = ['kcal', 'p', 'c', 'f', 'fib', 'sug', 'salt'];
 const MACRO = [
@@ -816,7 +926,8 @@ function normalize(d) {
   d.goals = { kcal: 2000, p: 100, c: 250, f: 70, water: 2500, fib: 30, sug: 50, salt: 6, ...(d.goals || {}) };
   d.favs ||= []; d.water ||= {}; d.weight ||= {}; d.templates ||= []; d.activity ||= {};
   if (d.goals.sportPct == null) d.goals.sportPct = 100;
-  d.training = { plan: 'gk', active: null, log: [], ...(d.training || {}) };
+  d.training = { plan: 'gk', active: null, log: [], custom: [], ...(d.training || {}) };
+  d.training.custom ||= [];
   d.profile = { sex: 'm', age: '', height: '', weight: '', activity: '1.375', goal: '0', ...(d.profile || {}) };
   if (!(d.v >= 2)) {
     d.foods.forEach(f => { if (!f.portions && DEFAULT_PORTIONS[f.name]) f.portions = DEFAULT_PORTIONS[f.name].map(([name, g]) => ({ name, g })); });
@@ -1205,7 +1316,8 @@ function figSVG(id, { size = 70, animate = false } = {}) {
 /* ---------- Training: Logik ---------- */
 let trView = 'overview', trEx = null, trBack = 'overview';
 const TR = () => S.training;
-const planOf = id => PLANS[id] || PLANS.gk;
+const planOf = id => PLANS[id] || TR().custom.find(p => p.id === id) || PLANS.gk;
+const allPlans = () => [...Object.entries(PLANS).map(([id, p]) => ({ ...p, id })), ...TR().custom];
 const unitOf = (p, u) => planOf(p).units.find(x => x.id === u);
 const exUnit = id => EX[id].unit || 'Wdh.';
 const clock = ms => { const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
@@ -1217,7 +1329,8 @@ function lastSetsFor(id) {
 }
 // Vorschlag: Hat letztes Mal jeder Satz die Ziel-Wiederholungen erreicht → etwas mehr Gewicht (progressive Steigerung)
 function suggestion(id, sets, reps) {
-  const ex = EX[id], last = lastSetsFor(id), target = parseInt(reps) || 0;
+  // Bei einem Bereich wie „8–12“ wird erst gesteigert, wenn alle Sätze das obere Ende erreicht haben
+  const ex = EX[id], last = lastSetsFor(id), target = repRange(reps)[1];
   if (!last) return { kg: '', hint: '' };
   if (ex.bw) return { kg: '', hint: `Letztes Mal: ${last.sets.map(s => num(s.reps)).join(' / ')} ${exUnit(id)}` };
   const top = Math.max(...last.sets.map(s => num(s.kg)));
@@ -1225,14 +1338,14 @@ function suggestion(id, sets, reps) {
   const allHit = last.sets.length >= sets && last.sets.every(s => num(s.reps) >= target);
   return allHit
     ? { kg: r2(top + ex.inc), hint: `Letztes Mal ${last.sets.length} × ${target} mit ${fmt(top)} kg geschafft – heute <b>${fmt(top + ex.inc)} kg</b> versuchen.` }
-    : { kg: top, hint: `Letztes Mal ${last.sets.map(s => num(s.reps)).join(' / ')} Wdh. mit ${fmt(top)} kg – Gewicht halten und alle ${target} Wdh. schaffen.` };
+    : { kg: top, hint: `Letztes Mal ${last.sets.map(s => num(s.reps)).join(' / ')} Wdh. mit ${fmt(top)} kg – Gewicht halten, bis alle Sätze ${target} Wdh. schaffen.` };
 }
 function startSession(plan, unit) {
   const u = unitOf(plan, unit); if (!u) return;
   if (TR().active && !confirm('Es läuft schon ein Training. Verwerfen und neu starten?')) return;
-  TR().active = { plan, unit, start: Date.now(), restUntil: 0, restLen: 0,
-    ex: u.ex.map(([id, sets, reps]) => { const sg = suggestion(id, sets, reps);
-      return { id, target: reps, hint: sg.hint, sets: Array.from({ length: sets }, () => ({ kg: sg.kg, reps: parseInt(reps) || '', done: false })) }; }) };
+  TR().active = { plan, unit, planName: planOf(plan).name, unitName: u.name, start: Date.now(), restUntil: 0, restLen: 0,
+    ex: u.ex.filter(([id]) => EX[id]).map(([id, sets, reps]) => { const sg = suggestion(id, sets, reps);
+      return { id, target: reps, hint: sg.hint, sets: Array.from({ length: sets }, () => ({ kg: sg.kg, reps: repRange(reps)[0] || '', done: false })) }; }) };
   save(); setTrView('session');
 }
 function finishSession() {
@@ -1245,8 +1358,7 @@ function finishSession() {
   let min = Math.max(1, Math.round((Date.now() - a.start) / 60000));
   if (min > 150) { const m = num(prompt('Das Training lief sehr lange – wie viele Minuten hast du wirklich trainiert?', '60')); if (m > 0) min = r0(m); }
   const date = iso(new Date(a.start)), id = uid(), kcal = r0(5 * weightAt(date) * min / 60);
-  const u = unitOf(a.plan, a.unit);
-  TR().log.push({ id, date, plan: a.plan, unit: a.unit, name: `${planOf(a.plan).name} · ${u ? u.name : ''}`, min, ex: done });
+  TR().log.push({ id, date, plan: a.plan, unit: a.unit, name: `${a.planName || planOf(a.plan).name} · ${a.unitName || unitOf(a.plan, a.unit)?.name || ''}`, min, ex: done });
   (S.activity[date] ||= []).push({ id: uid(), name: 'Krafttraining', icon: '🏋️', amount: min, kcal, workoutId: id });
   TR().active = null; save(); setTrView('overview');
   toast(`Training gespeichert · ${min} min · ca. ${kcal} kcal im Tagebuch`);
@@ -1260,10 +1372,83 @@ function setTrView(v, exId) {
 const BACK_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
 const CHECK_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
 const thumbBtn = id => `<button type="button" class="tr-thumb" data-act="tr-ex" data-ex="${id}" aria-label="${esc(EX[id].name)} ansehen">${figSVG(id, { size: 70 })}<span>${esc(EX[id].name)}</span></button>`;
+let libGroup = 'Alle', pickGroup = 'Alle', trDraft = null, pickUnit = 0;
+const exByGroup = g => Object.keys(EX).filter(id => g === 'Alle' || EX[id].group === g);
+const groupChips = (cur, act) => `<div class="cat-filter" role="radiogroup" aria-label="Muskelgruppe">${['Alle', ...EX_GROUPS].map(g =>
+  `<button type="button" role="radio" aria-checked="${g === cur}" class="${g === cur ? 'on' : ''}" data-act="${act}" data-g="${g}">${g}</button>`).join('')}</div>`;
 function renderTraining() {
   const el = $('#tab-training');
+  if (!PLANS[TR().plan] && !TR().custom.some(p => p.id === TR().plan)) TR().plan = 'gk';
   if (trView === 'session' && !TR().active) trView = 'overview';
-  el.innerHTML = trView === 'session' ? trainingSession() : trView === 'ex' ? trainingExercise(trEx) : trainingOverview();
+  if (trView === 'edit' && !trDraft) trView = 'overview';
+  el.innerHTML = trView === 'session' ? trainingSession() : trView === 'ex' ? trainingExercise(trEx) : trView === 'edit' ? trainingEditor() : trainingOverview();
+}
+
+/* ---------- Training: eigener Plan ---------- */
+function openEditor(plan) {
+  trDraft = plan ? JSON.parse(JSON.stringify(plan)) : { id: null, name: '', desc: '', perWeek: 3, units: [{ id: uid(), name: 'Einheit A', ex: [] }] };
+  setTrView('edit');
+}
+function trainingEditor() {
+  const d = trDraft, isNew = !d.id || !TR().custom.some(p => p.id === d.id);
+  const ICON = p => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`;
+  const units = d.units.map((u, ui) => `<div class="card">
+      <div class="row" style="align-items:center;flex-wrap:nowrap;margin-bottom:10px">
+        <label style="flex:1">Name der Einheit<input data-pu="name" data-ui="${ui}" value="${esc(u.name)}" placeholder="z.B. Push"></label>
+        <button class="icon-btn" title="Einheit entfernen" aria-label="Einheit ${esc(u.name)} entfernen" data-act="pe-del-unit" data-ui="${ui}" style="margin-top:18px">✕</button></div>
+      ${u.ex.length ? `<div class="pe-row head"><span></span><span>Übung</span><span>Sätze</span><span>Wdh.</span><span></span></div>` : ''}
+      ${u.ex.map(([id, sets, reps], ei) => `<div class="pe-row">
+          <button type="button" class="pe-fig" data-act="tr-ex" data-ex="${id}" aria-label="${esc(EX[id]?.name || id)} ansehen">${figSVG(id, { size: 48 })}</button>
+          <span class="pe-name">${esc(EX[id]?.name || id)}<small>${EX[id]?.group || ''}</small></span>
+          <input type="number" inputmode="numeric" min="1" max="10" aria-label="Sätze ${esc(EX[id]?.name || '')}" data-pe="1" data-ui="${ui}" data-ei="${ei}" value="${sets}">
+          <input inputmode="text" aria-label="Wiederholungen ${esc(EX[id]?.name || '')}" data-pe="2" data-ui="${ui}" data-ei="${ei}" value="${esc(reps)}" placeholder="8–12">
+          <span class="pe-tools">
+            <button class="icon-btn plain" title="Nach oben" aria-label="Nach oben" data-act="pe-move" data-dir="-1" data-ui="${ui}" data-ei="${ei}" ${ei ? '' : 'disabled'}>${ICON('M6 15l6-6 6 6')}</button>
+            <button class="icon-btn plain" title="Nach unten" aria-label="Nach unten" data-act="pe-move" data-dir="1" data-ui="${ui}" data-ei="${ei}" ${ei < u.ex.length - 1 ? '' : 'disabled'}>${ICON('M6 9l6 6 6-6')}</button>
+            <button class="icon-btn" title="Entfernen" aria-label="${esc(EX[id]?.name || '')} entfernen" data-act="pe-del-ex" data-ui="${ui}" data-ei="${ei}">✕</button></span>
+        </div>`).join('')}
+      ${u.ex.length ? '' : '<div class="empty">Noch keine Übungen.</div>'}
+      <button class="btn small" style="margin-top:10px" data-act="pe-add-ex" data-ui="${ui}">+ Übung hinzufügen</button>
+    </div>`).join('');
+  return `<div class="tr-top">
+      <button class="back-btn" data-act="pe-cancel" aria-label="Abbrechen">${BACK_ICON}</button>
+      <div class="t"><b>${isNew ? 'Eigener Plan' : 'Plan bearbeiten'}</b><span class="small-note">Stell dir Einheiten aus allen ${Object.keys(EX).length} Übungen zusammen</span></div></div>
+    <div class="card">
+      <div class="grid">
+        <label style="grid-column:1/-1">Name des Plans<input data-pd="name" value="${esc(d.name)}" placeholder="z.B. Mein Push/Pull/Beine"></label>
+        <label>Einheiten pro Woche<input type="number" inputmode="numeric" min="1" max="7" data-pd="perWeek" value="${d.perWeek}"></label>
+        <label style="grid-column:1/-1">Beschreibung (optional)<input data-pd="desc" value="${esc(d.desc || '')}" placeholder="z.B. Fokus Oberkörper, Mo/Mi/Fr"></label>
+      </div>
+      <p class="small-note" style="margin:10px 0 0">Wiederholungen als Zahl („8“) oder Bereich („8–12“). Bei einem Bereich schlägt die App mehr Gewicht vor, sobald du in allen Sätzen das obere Ende schaffst.</p>
+    </div>
+    ${units}
+    <button class="btn block" style="margin-bottom:16px" data-act="pe-add-unit">+ Einheit hinzufügen</button>
+    <div class="row" style="margin-bottom:16px">
+      <button class="btn primary" style="flex:1;padding:13px" data-act="pe-save">Plan speichern</button>
+      <button class="btn" data-act="pe-cancel">Abbrechen</button>
+      ${isNew ? '' : '<button class="btn danger" data-act="pe-delete">Löschen</button>'}</div>`;
+}
+function renderPickList() {
+  $('#exPickGroups').innerHTML = groupChips(pickGroup, 'pe-pick-group');
+  const inUnit = new Set((trDraft?.units[pickUnit]?.ex || []).map(e => e[0]));
+  $('#exPickList').innerHTML = exByGroup(pickGroup).map(id => `<button type="button" class="tr-thumb ${inUnit.has(id) ? 'added' : ''}" data-act="pe-pick" data-ex="${id}" aria-label="${esc(EX[id].name)} hinzufügen">
+      ${figSVG(id, { size: 70 })}<span>${esc(EX[id].name)}${inUnit.has(id) ? ' ✓' : ''}</span></button>`).join('');
+  $('#exPickTitle').textContent = `Übung zu „${trDraft?.units[pickUnit]?.name || 'Einheit'}“ hinzufügen`;
+}
+function savePlan() {
+  const d = trDraft;
+  d.name = d.name.trim();
+  if (!d.name) { alert('Bitte gib dem Plan einen Namen.'); return; }
+  d.perWeek = Math.min(7, Math.max(1, Math.round(num(d.perWeek)) || 3));
+  d.units = d.units.map((u, i) => ({ ...u, name: u.name.trim() || `Einheit ${String.fromCharCode(65 + i)}`,
+    ex: u.ex.map(([id, s, r]) => [id, Math.min(10, Math.max(1, Math.round(num(s)) || 3)), String(r).trim() || defaultReps(id)]) }))
+    .filter(u => u.ex.length);
+  if (!d.units.length) { alert('Füge mindestens einer Einheit eine Übung hinzu.'); renderTraining(); return; }
+  const isNew = !d.id || !TR().custom.some(p => p.id === d.id);
+  if (isNew) { d.id = 'c_' + uid(); TR().custom.push(d); }
+  else TR().custom = TR().custom.map(p => p.id === d.id ? d : p);
+  TR().plan = d.id; trDraft = null; save(); setTrView('overview');
+  toast(`Plan „${d.name}“ gespeichert`);
 }
 function trainingOverview() {
   const t = TR(), pl = planOf(t.plan), a = t.active, today = iso(new Date()), mon = mondayOf(today);
@@ -1272,7 +1457,7 @@ function trainingOverview() {
   const nextIdx = lastOfPlan ? (pl.units.findIndex(u => u.id === lastOfPlan.unit) + 1) % pl.units.length : 0;
   const lastOf = uid2 => [...t.log].reverse().find(l => l.plan === t.plan && l.unit === uid2);
   const active = a ? `<div class="card banner"><span style="font-size:24px" aria-hidden="true">🏋️</span>
-      <div class="txt"><b>Training läuft: ${esc(unitOf(a.plan, a.unit)?.name || '')}</b><span class="muted">seit <span id="trElapsedMini">${clock(Date.now() - a.start)}</span> min</span></div>
+      <div class="txt"><b>Training läuft: ${esc(a.unitName || unitOf(a.plan, a.unit)?.name || '')}</b><span class="muted">seit <span id="trElapsedMini">${clock(Date.now() - a.start)}</span> min</span></div>
       <button class="btn small primary" data-act="tr-resume">Fortsetzen</button></div>` : '';
   const units = pl.units.map((u, i) => {
     const last = lastOf(u.id), doneWeek = last && last.date >= mon, isNext = i === nextIdx && !doneWeek;
@@ -1287,16 +1472,21 @@ function trainingOverview() {
   return `${active}
     <div class="card">
       <label>Dein Plan</label>
-      <div class="seg" role="radiogroup" aria-label="Trainingsplan" style="display:flex;width:100%">${Object.entries(PLANS).map(([k, p]) =>
-        `<button type="button" role="radio" aria-checked="${k === t.plan}" class="${k === t.plan ? 'on' : ''}" style="flex:1" data-act="tr-plan" data-plan="${k}">${p.name}</button>`).join('')}</div>
-      <p class="small-note" style="margin:8px 0 14px">${pl.desc}</p>
+      <div class="cat-filter" role="radiogroup" aria-label="Trainingsplan" style="margin-top:6px">${allPlans().map(p =>
+        `<button type="button" role="radio" aria-checked="${p.id === t.plan}" class="${p.id === t.plan ? 'on' : ''}" data-act="tr-plan" data-plan="${p.id}">${esc(p.name)}</button>`).join('')}
+        <button type="button" data-act="tr-new-plan">+ Eigener Plan</button></div>
+      <p class="small-note" style="margin:6px 0 10px">${esc(pl.desc || `Eigener Plan · ${pl.units.length} ${pl.units.length === 1 ? 'Einheit' : 'Einheiten'} · ${pl.perWeek}× pro Woche`)}</p>
+      <div class="row" style="margin-bottom:14px">${PLANS[t.plan]
+        ? '<button class="btn small" data-act="tr-copy-plan">Kopieren &amp; anpassen</button>'
+        : '<button class="btn small" data-act="tr-edit-plan">Plan bearbeiten</button>'}</div>
       <div class="water-head"><b>Diese Woche</b><span><b>${weekDone}</b> <span class="muted">von ${pl.perWeek} Einheiten</span></span></div>
       <div class="bar"><div style="width:${Math.min(weekDone / pl.perWeek * 100, 100)}%"></div></div>
       <p class="small-note" style="margin:0">Als Nächstes: <b style="color:var(--text)">${esc(pl.units[nextIdx].name)}</b>${lastOfPlan ? ` · letztes Training ${longDate(lastOfPlan.date)}` : ''}</p>
     </div>
     ${units}
-    <div class="card"><h2>Alle Übungen</h2><p class="small-note" style="margin:-6px 0 12px">Tippe auf eine Übung, um die Ausführung als Animation zu sehen.</p>
-      <div class="tr-thumbs lib">${Object.keys(EX).map(thumbBtn).join('')}</div></div>
+    <div class="card"><h2>Alle Übungen <span class="muted" style="font-weight:500">(${Object.keys(EX).length})</span></h2><p class="small-note" style="margin:-6px 0 10px">Tippe auf eine Übung, um die Ausführung als Animation zu sehen.</p>
+      ${groupChips(libGroup, 'tr-lib-group')}
+      <div class="tr-thumbs lib">${exByGroup(libGroup).map(thumbBtn).join('')}</div></div>
     <div class="card"><h2>Letzte Trainings</h2>${recent.length ? recent.map(l => {
       const sets = l.ex.reduce((s, e) => s + e.sets.length, 0), vol = l.ex.reduce((s, e) => s + e.sets.reduce((v, x) => v + x.kg * x.reps, 0), 0);
       return `<div class="list-item"><span class="name">${esc(l.name)}<small>${longDate(l.date)} · ${l.min} min · ${sets} Sätze${vol ? ` · ${r0(vol).toLocaleString('de-DE')} kg bewegt` : ''}</small></span>
@@ -1328,7 +1518,7 @@ function trainingSession() {
   const resting = a.restUntil > Date.now();
   return `<div class="tr-top">
       <button class="back-btn" data-act="tr-back" aria-label="Zur Übersicht">${BACK_ICON}</button>
-      <div class="t"><b>${esc(u ? u.name : '')} · ${esc(planOf(a.plan).name)}</b><span class="small-note">${done} von ${total} Sätzen erledigt</span></div>
+      <div class="t"><b>${esc(a.unitName || (u ? u.name : ''))} · ${esc(a.planName || planOf(a.plan).name)}</b><span class="small-note">${done} von ${total} Sätzen erledigt</span></div>
       <span class="timer" id="trElapsed">${clock(Date.now() - a.start)}</span></div>
     ${cards}
     <div class="rest" id="trRest" ${resting ? '' : 'hidden'}>
@@ -2262,7 +2452,43 @@ document.addEventListener('click', e => {
     case 'tr-start': startSession(TR().plan, b.dataset.unit); break;
     case 'tr-resume': setTrView('session'); break;
     case 'tr-ex': setTrView('ex', b.dataset.ex); break;
-    case 'tr-back': setTrView(trView === 'ex' ? (TR().active && trBack === 'session' ? 'session' : 'overview') : 'overview'); break;
+    case 'tr-back': setTrView(trView === 'ex' && trBack === 'session' && TR().active ? 'session' : trView === 'ex' && trBack === 'edit' && trDraft ? 'edit' : 'overview'); break;
+    case 'tr-new-plan': openEditor(null); break;
+    case 'tr-edit-plan': openEditor(TR().custom.find(p => p.id === TR().plan)); break;
+    case 'tr-copy-plan': {
+      const p = planOf(TR().plan);
+      openEditor({ id: null, name: `${p.name} (angepasst)`, desc: '', perWeek: p.perWeek, units: p.units.map(u => ({ id: uid(), name: u.name, ex: u.ex.map(e => [...e]) })) });
+      break;
+    }
+    case 'tr-lib-group': libGroup = b.dataset.g; renderTraining(); break;
+    case 'pe-pick-group': pickGroup = b.dataset.g; renderPickList(); break;
+    case 'pe-add-unit':
+      trDraft.units.push({ id: uid(), name: `Einheit ${String.fromCharCode(65 + trDraft.units.length)}`, ex: [] }); renderTraining(); break;
+    case 'pe-del-unit': {
+      const u = trDraft.units[+b.dataset.ui];
+      if (u.ex.length && !confirm(`Einheit „${u.name}“ mit ${u.ex.length} Übungen entfernen?`)) return;
+      trDraft.units.splice(+b.dataset.ui, 1); renderTraining(); break;
+    }
+    case 'pe-add-ex': pickUnit = +b.dataset.ui; renderPickList(); $('#exPickDlg').showModal(); break;
+    case 'pe-pick': {
+      const exId = b.dataset.ex;
+      trDraft.units[pickUnit].ex.push([exId, 3, defaultReps(exId)]);
+      renderTraining(); renderPickList(); toast(`${EX[exId].name} hinzugefügt`); break;
+    }
+    case 'pe-move': {
+      const list = trDraft.units[+b.dataset.ui].ex, i = +b.dataset.ei, j = i + num(b.dataset.dir);
+      if (j < 0 || j >= list.length) return;
+      [list[i], list[j]] = [list[j], list[i]]; renderTraining(); break;
+    }
+    case 'pe-del-ex': trDraft.units[+b.dataset.ui].ex.splice(+b.dataset.ei, 1); renderTraining(); break;
+    case 'pe-save': savePlan(); break;
+    case 'pe-cancel': trDraft = null; setTrView('overview'); break;
+    case 'pe-delete': {
+      if (!confirm(`Plan „${trDraft.name}“ löschen? Deine gespeicherten Trainings bleiben erhalten.`)) return;
+      TR().custom = TR().custom.filter(p => p.id !== trDraft.id);
+      if (TR().plan === trDraft.id) TR().plan = 'gk';
+      trDraft = null; save(); setTrView('overview'); toast('Plan gelöscht'); break;
+    }
     case 'tr-set': {
       const a = TR().active; if (!a) return;
       const e = a.ex[+b.dataset.i], s = e.sets[+b.dataset.k];
@@ -2521,8 +2747,13 @@ window.addEventListener('resize', () => {
 });
 
 // Eingaben in der laufenden Einheit (Gewicht/Wiederholungen) direkt speichern, ohne neu zu zeichnen
+$('#exPickDlg').addEventListener('close', () => { if (trView === 'edit') renderTraining(); });
 $('#tab-training').addEventListener('input', e => {
   const t = e.target, a = TR().active;
+  // Plan-Editor: Entwurf mitschreiben (gespeichert wird erst mit „Plan speichern“)
+  if (trDraft && t.dataset.pd) { trDraft[t.dataset.pd] = t.value; return; }
+  if (trDraft && t.dataset.pu) { trDraft.units[+t.dataset.ui].name = t.value; return; }
+  if (trDraft && t.dataset.pe) { trDraft.units[+t.dataset.ui].ex[+t.dataset.ei][+t.dataset.pe] = t.value; return; }
   if (!a || t.dataset.trEx == null) return;
   const i = +t.dataset.trEx, k = +t.dataset.trSet, f = t.dataset.trF, sets = a.ex[i].sets;
   sets[k][f] = t.value;
