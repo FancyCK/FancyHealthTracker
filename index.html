@@ -137,6 +137,31 @@
   .res .rk{font-weight:800;white-space:nowrap;text-align:right}
   .res .rk small{display:block;font-weight:500;color:var(--muted);font-size:11px}
   .res .thumb{flex:none;width:40px;height:40px;border-radius:8px;object-fit:cover;background:#fff}
+  /* Serien, Woche, Aktivität, Erfolge */
+  .streaks{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .streaks:empty{display:none}
+  .streak{font-size:13px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);color:var(--text)}
+  .streak.hot{border-color:#e8853d;background:#3a2414}
+  .streak.warn{border-style:dashed;color:var(--muted);font-weight:500}
+  .week-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0 4px}
+  .wd{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:8px;padding:4px 0}
+  .wd:hover{background:var(--accent-soft)}
+  .wd .col{height:54px;width:100%;max-width:26px;background:var(--line);border-radius:4px;display:flex;align-items:flex-end;overflow:hidden}
+  .wd .col div{width:100%;background:var(--accent);border-radius:4px 4px 0 0}
+  .wd.over .col div{background:var(--danger)}
+  .wd span{font-size:11.5px;color:var(--muted);font-weight:600}
+  .wd.cur span{color:var(--accent)}
+  .wd.cur .col{outline:2px solid var(--accent);outline-offset:1px}
+  .act-row{display:grid;grid-template-columns:1fr 92px 92px auto;gap:8px;align-items:end;margin-top:10px}
+  @media (max-width:560px){.act-row{grid-template-columns:1fr 1fr}.act-row label:first-child{grid-column:1/-1}}
+  .badge-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .badge{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;gap:10px;align-items:center;background:var(--bg)}
+  .badge .bi{font-size:26px;flex:none}
+  .badge b{display:block;font-size:13.5px}
+  .badge small{color:var(--muted);font-size:12px;line-height:1.3;display:block}
+  .badge.locked{opacity:.45}
+  .badge.locked .bi{filter:grayscale(1)}
+  .badge.got{border-color:var(--accent-strong);background:var(--accent-soft)}
   .cat-filter{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin-bottom:4px;scrollbar-width:none}
   .cat-filter button{flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--bg);color:var(--muted);padding:5px 11px;border-radius:99px;cursor:pointer;white-space:nowrap}
   .cat-filter button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
@@ -209,10 +234,13 @@
         <button class="btn small" data-act="next" aria-label="Nächster Tag">▶</button>
         <button class="btn small" data-act="today">Heute</button>
       </div>
+      <div class="streaks" id="streaks"></div>
     </div>
 
     <div class="card" id="summary"></div>
+    <div class="card" id="week"></div>
     <div class="card" id="water"></div>
+    <div class="card" id="activity"></div>
 
     <div class="card">
       <h2>Essen eintragen</h2>
@@ -327,6 +355,7 @@
       <p class="small-note">Gestrichelte Linie = Tagesziel, rot = über dem Ziel. Fahre über einen Balken für Details, klicke um den Tag zu öffnen.</p>
     </div>
     <div class="card" id="stats"></div>
+    <div class="card" id="badges"></div>
     <div class="card">
       <h2>Gewicht</h2>
       <div class="row">
@@ -358,6 +387,15 @@
         <label>Salz – max. (g)<input type="number" id="gSalt" min="0" step="0.5" inputmode="decimal"></label>
       </div>
       <p class="small-note">Richtwerte für Erwachsene: mind. 30 g Ballaststoffe, höchstens 50 g Zucker und 6 g Salz pro Tag.</p>
+      <div class="sub-label">Sport</div>
+      <label style="max-width:360px">Verbrannte Kalorien zum Tagesziel dazurechnen
+        <select id="gSport">
+          <option value="100">Ja, komplett (100 %)</option>
+          <option value="75">Zu 75 %</option>
+          <option value="50">Zur Hälfte (50 %) – vorsichtig, Uhren schätzen oft zu hoch</option>
+          <option value="0">Nein, Tagesziel bleibt gleich</option>
+        </select>
+      </label>
       <div class="row" style="margin-top:12px"><button class="btn primary" data-act="save-goals">Ziele speichern</button></div>
     </div>
     <div class="card" id="calcCard">
@@ -572,6 +610,14 @@ const norm = s => String(s).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'o
 const matches = (x, q) => { const nq = norm(q); return [x.name, ...(x.aliases || [])].some(n => norm(n).includes(nq)); };
 const catOf = f => CATS.includes(f.cat) ? f.cat : 'Sonstiges';
 const catOptions = sel => CATS.map(c => `<option ${c === sel ? 'selected' : ''}>${c}</option>`).join('');
+// Aktivitäten mit MET-Wert (Energieumsatz-Faktor); kcal ≈ MET × Gewicht (kg) × Stunden.
+// „Schritte“ wird pro Schritt gerechnet: ca. 0,04 kcal × Gewicht/70 kg.
+const ACTIVITIES = [
+  ['Schritte', '👟', 0], ['Spazieren', '🚶', 3.5], ['Gehen (zügig)', '🚶', 4.3], ['Joggen', '🏃', 8], ['Laufen (schnell)', '🏃', 11],
+  ['Radfahren (gemütlich)', '🚴', 4], ['Radfahren (sportlich)', '🚴', 7.5], ['Schwimmen', '🏊', 7], ['Krafttraining', '🏋️', 5],
+  ['HIIT / Zirkeltraining', '⚡', 8], ['Fußball', '⚽', 7], ['Tennis', '🎾', 7], ['Wandern', '🥾', 6], ['Tanzen', '💃', 5],
+  ['Yoga', '🧘', 3], ['Treppensteigen', '🪜', 8], ['Sonstiges', '✨', 0]
+];
 const NUTR = ['kcal', 'p', 'c', 'f', 'fib', 'sug', 'salt'];
 const MACRO = [
   { key: 'p', name: 'Eiweiß', color: 'var(--p)', kcal: 4 },
@@ -612,7 +658,8 @@ function freshState() {
 function normalize(d) {
   d.foods ||= []; d.recipes ||= []; d.log ||= {};
   d.goals = { kcal: 2000, p: 100, c: 250, f: 70, water: 2500, fib: 30, sug: 50, salt: 6, ...(d.goals || {}) };
-  d.favs ||= []; d.water ||= {}; d.weight ||= {}; d.templates ||= [];
+  d.favs ||= []; d.water ||= {}; d.weight ||= {}; d.templates ||= []; d.activity ||= {};
+  if (d.goals.sportPct == null) d.goals.sportPct = 100;
   d.profile = { sex: 'm', age: '', height: '', weight: '', activity: '1.375', goal: '0', ...(d.profile || {}) };
   if (!(d.v >= 2)) {
     d.foods.forEach(f => { if (!f.portions && DEFAULT_PORTIONS[f.name]) f.portions = DEFAULT_PORTIONS[f.name].map(([name, g]) => ({ name, g })); });
@@ -647,7 +694,8 @@ function load() {
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); }
-  catch (e) { alert('Speichern fehlgeschlagen – bitte eine Sicherung exportieren.'); }
+  catch (e) { alert('Speichern fehlgeschlagen – bitte eine Sicherung exportieren.'); return; }
+  checkBadges();
 }
 let toastTimer;
 function toast(msg) {
@@ -965,6 +1013,162 @@ function entryAmountText(e) {
   return e.amount != null ? `${fmt(e.amount)} ${esc(e.unit)}${e.grams ? ` (${fmt(e.grams)} g)` : ''} · ` : '';
 }
 
+/* ---------- Tagesziel inkl. Sport ---------- */
+const hasFood = d => (S.log[d] || []).length > 0;
+const sportKcal = d => (S.activity[d] || []).reduce((a, x) => a + num(x.kcal), 0);
+const sportCredit = d => sportKcal(d) * num(S.goals.sportPct) / 100;
+const goalFor = d => S.goals.kcal + sportCredit(d);
+const inGoalDay = d => { if (!hasFood(d)) return false; const g = goalFor(d); return Math.abs(sum(S.log[d]).kcal - g) <= g * 0.1; };
+// Gewicht für die Kalorienschätzung: letzter Eintrag bis zu diesem Tag, sonst Profil, sonst 70 kg
+function weightAt(d) {
+  const ds = Object.keys(S.weight).filter(x => x <= d).sort();
+  return ds.length ? S.weight[ds[ds.length - 1]] : (num(S.profile.weight) || 70);
+}
+
+/* ---------- Aktivität ---------- */
+let actKcalTouched = false; // true, sobald die kcal von Hand geändert wurden (z.B. Wert von der Uhr)
+function estimateActivity() {
+  const [name, , met] = ACTIVITIES[num($('#actType')?.value)] || [];
+  const amount = num($('#actAmount')?.value), kg = weightAt(curDate);
+  if (!name || amount <= 0) return 0;
+  if (name === 'Schritte') return r0(amount * 0.04 * kg / 70);
+  return r0(met * kg * amount / 60);
+}
+function updateActivityForm() {
+  const name = ACTIVITIES[num($('#actType').value)][0];
+  $('#actAmountLabel').firstChild.textContent = name === 'Schritte' ? 'Schritte' : 'Minuten';
+  if (!actKcalTouched) { const k = estimateActivity(); $('#actKcal').value = k || ''; }
+}
+function renderActivity() {
+  const list = S.activity[curDate] || [], total = sportKcal(curDate), credit = sportCredit(curDate);
+  const prevType = $('#actType')?.value ?? '3';
+  $('#activity').innerHTML = `
+    <div class="water-head"><b>🏃 Aktivität</b><span>${total ? `<b>${r0(total)} kcal</b> <span class="muted">verbrannt${S.goals.sportPct > 0 ? ` · +${r0(credit)} aufs Tagesziel` : ''}</span>` : '<span class="muted">noch nichts eingetragen</span>'}</span></div>
+    ${list.map(a => `<div class="entry" style="cursor:default">
+        <span class="ico">${esc(a.icon)}</span>
+        <div class="name">${esc(a.name)}<small>${a.name === 'Schritte' ? `${num(a.amount).toLocaleString('de-DE')} Schritte` : `${fmt(a.amount)} min`}</small></div>
+        <span class="kcal">${r0(a.kcal)} kcal</span>
+        <button class="icon-btn" title="Löschen" aria-label="${esc(a.name)} löschen" data-act="del-activity" data-id="${a.id}">✕</button></div>`).join('')}
+    <div class="act-row">
+      <label>Aktivität<select id="actType">${ACTIVITIES.map(([n, i], k) => `<option value="${k}">${i} ${n}</option>`).join('')}</select></label>
+      <label id="actAmountLabel">Minuten<input type="number" id="actAmount" min="0" step="any" inputmode="numeric" placeholder="z.B. 45"></label>
+      <label>kcal<input type="number" id="actKcal" min="0" step="any" inputmode="numeric"></label>
+      <button class="btn primary" data-act="add-activity">+ Eintragen</button>
+    </div>
+    <p class="small-note" style="margin:8px 0 0">Geschätzt für ${fmt(weightAt(curDate))} kg Körpergewicht. Hast du den Wert von deiner Uhr, trag ihn einfach bei „kcal“ ein.</p>`;
+  $('#actType').value = prevType;
+  actKcalTouched = false;
+  updateActivityForm();
+}
+
+/* ---------- Serien ---------- */
+// Längste/aktuelle Folge von Tagen, für die pred(tag) gilt (aktuelle Serie zählt bis gestern, heute zählt mit, sobald erfüllt)
+function runs(pred) {
+  const today = iso(new Date());
+  let cur = 0, d = pred(today) ? today : addDays(today, -1);
+  while (pred(d)) { cur++; d = addDays(d, -1); }
+  const all = [...new Set([...Object.keys(S.log), ...Object.keys(S.water), ...Object.keys(S.activity)])].sort();
+  let best = 0;
+  if (all.length) {
+    let run = 0;
+    for (let x = all[0]; x <= today; x = addDays(x, 1)) { run = pred(x) ? run + 1 : 0; if (run > best) best = run; }
+  }
+  return { cur, best: Math.max(best, cur) };
+}
+const mondayOf = d => addDays(d, -((new Date(d + 'T12:00').getDay() + 6) % 7));
+function renderStreaks() {
+  const today = iso(new Date());
+  const log = runs(hasFood), goal = runs(inGoalDay);
+  const mon = mondayOf(today);
+  const weekDays = [...Array(7)].map((_, i) => addDays(mon, i)).filter(x => x <= today);
+  const prot = weekDays.filter(x => hasFood(x) && sum(S.log[x]).p >= S.goals.p).length;
+  const chips = [];
+  if (log.cur) chips.push(`<span class="streak ${log.cur >= 3 ? 'hot' : ''}" title="Längste Serie: ${log.best} Tage">🔥 ${log.cur} ${log.cur === 1 ? 'Tag' : 'Tage'} Serie</span>`);
+  if (log.cur && !hasFood(today)) chips.push('<span class="streak warn">Heute noch eintragen, um die Serie zu halten</span>');
+  if (goal.cur >= 2) chips.push(`<span class="streak">🎯 ${goal.cur} Tage im Ziel</span>`);
+  if (Object.keys(S.log).length) chips.push(`<span class="streak">💪 Eiweißziel ${prot}/${weekDays.length} diese Woche</span>`);
+  $('#streaks').innerHTML = chips.join('');
+}
+
+/* ---------- Wochenbudget (Mo–So) ---------- */
+function renderWeek() {
+  const mon = mondayOf(curDate), days = [...Array(7)].map((_, i) => addDays(mon, i));
+  const budget = days.reduce((a, x) => a + goalFor(x), 0);
+  const eaten = days.reduce((a, x) => a + sum(S.log[x] || []).kcal, 0);
+  // Bilanz der vergangenen Tage dieser Woche (nur Tage mit Einträgen): + = über Plan, − = unter Plan
+  const past = days.filter(x => x < curDate && hasFood(x));
+  const balance = past.reduce((a, x) => a + sum(S.log[x]).kcal - goalFor(x), 0);
+  const remaining = days.filter(x => x >= curDate).length;
+  const flexToday = goalFor(curDate) - balance / remaining;
+  const pct = budget ? Math.min(eaten / budget * 100, 100) : 0;
+  const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const maxDay = Math.max(...days.map(x => Math.max(sum(S.log[x] || []).kcal, goalFor(x))), 1);
+  let msg = '';
+  if (past.length) {
+    msg = balance <= 0
+      ? `Bisher <b>${r0(-balance)} kcal unter Plan</b>. Heute sind bis zu <b>${r0(flexToday)} kcal</b> drin, und du bleibst trotzdem im Wochenbudget.`
+      : `Bisher <b>${r0(balance)} kcal über Plan</b>. Mit Ø <b>${r0(flexToday)} kcal</b> pro Tag bis Sonntag gleichst du es wieder aus.`;
+    if (flexToday < 1200) msg += ' <span style="color:var(--danger)">Bitte nicht unter ca. 1.200 kcal am Tag gehen – lieber über mehrere Wochen ausgleichen.</span>';
+  } else msg = 'Liegst du an einem Tag unter deinem Ziel, darfst du an anderen Tagen der Woche entsprechend mehr essen.';
+  $('#week').innerHTML = `
+    <div class="water-head"><b>📅 Woche ${shortDate(days[0])} – ${shortDate(days[6])}</b><span><b>${r0(eaten).toLocaleString('de-DE')}</b> <span class="muted">von ${r0(budget).toLocaleString('de-DE')} kcal</span></span></div>
+    <div class="bar ${eaten > budget ? 'over' : ''}"><div style="width:${pct}%"></div></div>
+    <div class="week-days">${days.map((x, i) => {
+      const k = sum(S.log[x] || []).kcal, g = goalFor(x);
+      return `<div class="wd ${x === curDate ? 'cur' : ''} ${k > g * 1.1 ? 'over' : ''}" data-act="goto-day" data-date="${x}" data-tip="${esc(`${longDate(x)}<br><b>${r0(k)}</b> von ${r0(g)} kcal`)}">
+        <div class="col"><div style="height:${k / maxDay * 100}%"></div></div><span>${dayNames[i]}</span></div>`;
+    }).join('')}</div>
+    <p class="small-note" style="margin:6px 0 0">${msg}</p>`;
+}
+
+/* ---------- Erfolge ---------- */
+const BADGES = [
+  { id: 'first', icon: '🌱', name: 'Erster Schritt', desc: 'Den ersten Eintrag gemacht', test: c => c.days >= 1 },
+  { id: 'streak3', icon: '🔥', name: 'Dranbleiber', desc: '3 Tage am Stück eingetragen', test: c => c.logRun >= 3 },
+  { id: 'streak7', icon: '🔥', name: 'Eine Woche!', desc: '7 Tage am Stück eingetragen', test: c => c.logRun >= 7 },
+  { id: 'streak30', icon: '🏅', name: 'Monatsserie', desc: '30 Tage am Stück eingetragen', test: c => c.logRun >= 30 },
+  { id: 'streak100', icon: '👑', name: '100 Tage', desc: '100 Tage am Stück eingetragen', test: c => c.logRun >= 100 },
+  { id: 'goal7', icon: '🎯', name: 'Volltreffer-Woche', desc: '7 Tage am Stück im Kalorienziel (±10 %)', test: c => c.goalRun >= 7 },
+  { id: 'protein5', icon: '💪', name: 'Eiweiß-Profi', desc: 'An 5 Tagen einer Woche das Eiweißziel erreicht', test: c => c.proteinWeek >= 5 },
+  { id: 'water7', icon: '💧', name: 'Gut hydriert', desc: '7 Tage am Stück das Wasserziel erreicht', test: c => c.waterRun >= 7 },
+  { id: 'sport10', icon: '🏃', name: 'In Bewegung', desc: '10 Aktivitäten eingetragen', test: c => c.workouts >= 10 },
+  { id: 'kg2', icon: '⚖️', name: '2 kg leichter', desc: '2 kg weniger als beim ersten Wiegen', test: c => c.weightDrop >= 2 }
+];
+function badgeContext() {
+  const weeks = new Map();
+  Object.keys(S.log).filter(d => hasFood(d) && sum(S.log[d]).p >= S.goals.p).forEach(d => weeks.set(mondayOf(d), (weeks.get(mondayOf(d)) || 0) + 1));
+  const w = Object.keys(S.weight).sort();
+  return {
+    days: Object.keys(S.log).filter(hasFood).length,
+    logRun: runs(hasFood).best, goalRun: runs(inGoalDay).best,
+    waterRun: runs(d => (S.water[d] || 0) >= (S.goals.water || 2500)).best,
+    proteinWeek: Math.max(0, ...weeks.values()),
+    workouts: Object.values(S.activity).reduce((a, l) => a + l.length, 0),
+    weightDrop: w.length >= 2 ? S.weight[w[0]] - Math.min(...w.map(d => S.weight[d])) : 0
+  };
+}
+const unlockedBadges = () => { const c = badgeContext(); return BADGES.filter(b => b.test(c)).map(b => b.id); };
+// Nach jeder Änderung prüfen, ob ein neuer Erfolg dazugekommen ist
+function checkBadges() {
+  if (!S.badgesSeen) return;
+  const fresh = unlockedBadges().filter(id => !S.badgesSeen.includes(id));
+  if (!fresh.length) return;
+  S.badgesSeen.push(...fresh);
+  localStorage.setItem(KEY, JSON.stringify(S));
+  const b = BADGES.find(x => x.id === fresh[fresh.length - 1]);
+  setTimeout(() => toast(`🏆 Neuer Erfolg: ${b.icon} ${b.name}`), 1300);
+}
+function renderBadges() {
+  const got = new Set(unlockedBadges()), log = runs(hasFood);
+  $('#badges').innerHTML = `<h2>Serien & Erfolge</h2>
+    <div class="grid" style="margin-bottom:14px">
+      <div class="stat"><span>Aktuelle Serie</span><b>🔥 ${log.cur} ${log.cur === 1 ? 'Tag' : 'Tage'}</b></div>
+      <div class="stat"><span>Längste Serie</span><b>${log.best} ${log.best === 1 ? 'Tag' : 'Tage'}</b></div>
+      <div class="stat"><span>Erfolge</span><b>${got.size} / ${BADGES.length}</b></div>
+    </div>
+    <div class="badge-grid">${BADGES.map(b => `<div class="badge ${got.has(b.id) ? 'got' : 'locked'}"><span class="bi">${b.icon}</span><div><b>${b.name}</b><small>${b.desc}</small></div></div>`).join('')}</div>`;
+}
+
 function renderDiary() {
   const d = new Date(curDate + 'T12:00');
   const isToday = curDate === iso(new Date());
@@ -972,11 +1176,11 @@ function renderDiary() {
   $('#dateLabel').textContent = (isToday ? 'Heute, ' : '') + d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const entries = S.log[curDate] || [];
-  const t = sum(entries), g = S.goals;
-  const left = g.kcal - t.kcal;
-  const pct = g.kcal ? Math.min(t.kcal / g.kcal * 100, 100) : 0;
+  const t = sum(entries), g = S.goals, goalK = goalFor(curDate), credit = sportCredit(curDate);
+  const left = goalK - t.kcal;
+  const pct = goalK ? Math.min(t.kcal / goalK * 100, 100) : 0;
   $('#summary').innerHTML = `
-    <div class="big"><span class="num">${r0(t.kcal)}</span><span class="muted">von ${g.kcal} kcal</span>
+    <div class="big"><span class="num">${r0(t.kcal)}</span><span class="muted">von ${r0(goalK)} kcal${credit ? ` <span title="Tagesziel ${g.kcal} + Sport ${r0(credit)}">(inkl. 🏃 +${r0(credit)})</span>` : ''}</span>
       <span style="margin-left:auto;font-weight:700;color:${left < 0 ? 'var(--danger)' : 'var(--accent)'}">
         ${left < 0 ? r0(-left) + ' kcal drüber' : r0(left) + ' kcal übrig'}</span></div>
     <div class="bar ${left < 0 ? 'over' : ''}"><div style="width:${pct}%"></div></div>
@@ -984,6 +1188,9 @@ function renderDiary() {
     <div class="macros minor">${minorBlock('Ballaststoffe', t.fib, g.fib, false)}${minorBlock('Zucker', t.sug, g.sug, true)}${minorBlock('Salz', t.salt, g.salt, true)}</div>`;
 
   renderWater();
+  renderActivity();
+  renderWeek();
+  renderStreaks();
   renderBackupBanner();
 
   const prevDay = addDays(curDate, -1), prevEntries = S.log[prevDay] || [];
@@ -1437,8 +1644,9 @@ function renderHistory() {
         tip: `Woche ${shortDate(wk[0])} – ${shortDate(wk[wk.length - 1])}<br>Ø <b>${r0(avg)} kcal</b> pro Tag · ${wv.length} Tage erfasst` });
     }
   } else {
-    bars = days.map((d, i) => ({ v: vals[i].kcal, label: shortDate(d), date: d,
-      tip: `${longDate(d)}<br><b>${r0(vals[i].kcal)} kcal</b>` + (vals[i].kcal ? `<br>E ${fmt(vals[i].p)} g · KH ${fmt(vals[i].c)} g · F ${fmt(vals[i].f)} g` : ' · keine Einträge') }));
+    bars = days.map((d, i) => ({ v: vals[i].kcal, g: goalFor(d), label: shortDate(d), date: d,
+      tip: `${longDate(d)}<br><b>${r0(vals[i].kcal)} kcal</b>` + (vals[i].kcal ? `<br>E ${fmt(vals[i].p)} g · KH ${fmt(vals[i].c)} g · F ${fmt(vals[i].f)} g` : ' · keine Einträge')
+        + (sportKcal(d) ? `<br>🏃 ${r0(sportKcal(d))} kcal Sport · Ziel ${r0(goalFor(d))}` : '') }));
   }
   const max = Math.max(goal * 1.25, ...bars.map(b => b.v), 1);
   const every = bars.length > 16 ? Math.ceil(bars.length / 8) : 1;
@@ -1446,13 +1654,14 @@ function renderHistory() {
   $('#chartTitle').textContent = histRange === 90 ? 'Kalorien · Wochendurchschnitt' : 'Kalorien pro Tag';
   $('#chart').innerHTML = `<div class="chart" style="gap:${gap}px" role="img" aria-label="Kalorienverlauf">
       <div class="goal" style="bottom:${goal / max * 100}%"><span>Ziel ${goal}</span></div>
-      ${bars.map(b => `<div class="col ${b.v > goal ? 'over' : ''}" data-act="goto-day" data-date="${b.date}" data-tip="${esc(b.tip)}"><div style="height:${b.v / max * 100}%"></div></div>`).join('')}
+      ${bars.map(b => `<div class="col ${b.v > (b.g ?? goal) ? 'over' : ''}" data-act="goto-day" data-date="${b.date}" data-tip="${esc(b.tip)}"><div style="height:${b.v / max * 100}%"></div></div>`).join('')}
     </div>
     <div class="chart-labels" style="gap:${gap}px">${bars.map((b, i) => `<span>${(bars.length - 1 - i) % every === 0 ? b.label : ''}</span>`).join('')}</div>`;
 
   // Kennzahlen
   const logged = vals.filter(v => v.kcal > 0), n = logged.length, tot = sum(logged);
-  const inGoal = logged.filter(v => Math.abs(v.kcal - goal) <= goal * 0.1).length;
+  const inGoal = days.filter(inGoalDay).length;
+  const sportTotal = days.reduce((a, d) => a + sportKcal(d), 0), sportCount = days.reduce((a, d) => a + (S.activity[d] || []).length, 0);
   const stat = (label, value) => `<div class="stat"><span>${label}</span><b>${value}</b></div>`;
   const share = (p, c, f) => { const k = p * 4 + c * 4 + f * 9; return k ? [p * 4 / k, c * 4 / k, f * 9 / k] : null; };
   const stack = (label, sh) => `<div class="split-row"><span class="muted">${label}</span><div class="stack">${sh.map((s, i) =>
@@ -1479,6 +1688,7 @@ function renderHistory() {
       ${stat('Ballaststoffe', fmt(tot.fib / n) + ' g')}
       ${stat('Zucker', fmt(tot.sug / n) + ' g')}
       ${stat('Salz', fmt(tot.salt / n) + ' g')}
+      ${stat('Sport', sportCount ? `${sportCount}× · ${r0(sportTotal).toLocaleString('de-DE')} kcal` : '–')}
     </div>
     <h3 style="margin:20px 0 10px">Makro-Verteilung (Anteil an den Kalorien)</h3>
     ${stack('Ist', ist)}${ziel ? stack('Ziel', ziel) : ''}
@@ -1488,6 +1698,7 @@ function renderHistory() {
     : '<div class="empty">Noch keine Einträge in diesem Zeitraum.</div>');
 
   renderWeight();
+  renderBadges();
 }
 
 function renderWeight() {
@@ -1577,7 +1788,7 @@ async function exportBackup() {
 }
 
 /* ---------- Einstellungen & Bedarfsrechner ---------- */
-const G_FIELDS = { kcal: '#gKcal', p: '#gP', c: '#gC', f: '#gF', water: '#gW', fib: '#gFib', sug: '#gSug', salt: '#gSalt' };
+const G_FIELDS = { kcal: '#gKcal', p: '#gP', c: '#gC', f: '#gF', water: '#gW', fib: '#gFib', sug: '#gSug', salt: '#gSalt', sportPct: '#gSport' };
 function renderSettings() {
   renderBackupInfo();
   Object.entries(G_FIELDS).forEach(([k, s]) => $(s).value = S.goals[k]);
@@ -1686,6 +1897,17 @@ document.addEventListener('click', e => {
       if (!t || !confirm(`Vorlage „${t.name}“ löschen?`)) return;
       S.templates = S.templates.filter(x => x.id !== id); save(); renderTemplates(); break;
     }
+    case 'add-activity': {
+      const [name, icon] = ACTIVITIES[num($('#actType').value)];
+      const amount = num($('#actAmount').value), kcal = num($('#actKcal').value);
+      if (kcal <= 0) { alert(name === 'Sonstiges' ? 'Bitte die verbrannten kcal eintragen.' : `Bitte ${name === 'Schritte' ? 'die Schritte' : 'die Dauer in Minuten'} oder die kcal angeben.`); return; }
+      (S.activity[curDate] ||= []).push({ id: uid(), name, icon, amount, kcal: r0(kcal) });
+      save(); renderDiary(); toast(`${icon} ${name} eingetragen (${r0(kcal)} kcal)`); break;
+    }
+    case 'del-activity':
+      S.activity[curDate] = (S.activity[curDate] || []).filter(x => x.id !== id);
+      if (!S.activity[curDate].length) delete S.activity[curDate];
+      save(); renderDiary(); break;
     case 'water': {
       const ml = Math.max(0, (S.water[curDate] || 0) + num(b.dataset.ml));
       if (ml) S.water[curDate] = ml; else delete S.water[curDate];
@@ -1822,7 +2044,7 @@ document.addEventListener('click', e => {
     case 'import': $('#importFile').click(); break;
     case 'reset':
       if (!confirm('Wirklich ALLE Daten (Tagebuch, Gerichte, Lebensmittel, Vorlagen, Wasser, Gewicht) löschen?')) return;
-      S = normalize(freshState()); draft = null; save(); fillSourceSelect(); renderSettings(); toast('Alle Daten gelöscht'); break;
+      S = normalize(freshState()); S.badgesSeen = []; draft = null; save(); fillSourceSelect(); renderSettings(); toast('Alle Daten gelöscht'); break;
   }
 });
 // Enter/Leertaste auf klickbaren Nicht-Buttons (z.B. Tagebuch-Einträge, Favoriten-Stern, Online-Treffer)
@@ -1888,7 +2110,7 @@ $('#importFile').addEventListener('change', e => {
       const d = JSON.parse(reader.result);
       if (!Array.isArray(d.foods) || !Array.isArray(d.recipes) || typeof d.log !== 'object') throw 0;
       if (!confirm('Aktuelle Daten durch die Sicherung ersetzen?')) return;
-      S = normalize(d);
+      S = normalize(d); initBadges();
       save(); fillSourceSelect(); renderSettings(); renderBackupBanner(); toast('Sicherung importiert');
     } catch (err) { alert('Die Datei ist keine gültige Sicherung.'); }
   };
@@ -1907,7 +2129,17 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => { if (isActive('history')) renderWeight(); }, 150);
 });
 
+$('#activity').addEventListener('input', e => {
+  if (e.target.id === 'actKcal') actKcalTouched = e.target.value !== '';
+  else if (e.target.id === 'actAmount') updateActivityForm();
+});
+$('#activity').addEventListener('change', e => { if (e.target.id === 'actType') updateActivityForm(); });
+
+// Schon erreichte Erfolge still übernehmen, damit nur wirklich neue gemeldet werden
+function initBadges() { if (!S.badgesSeen) { S.badgesSeen = unlockedBadges(); localStorage.setItem(KEY, JSON.stringify(S)); } }
+
 /* ---------- Start ---------- */
+initBadges();
 $('#fCat').innerHTML = catOptions('Sonstiges');
 renderPicker('food');
 renderPicker('quick');
