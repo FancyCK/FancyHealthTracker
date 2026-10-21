@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kalorien-Tracker</title>
+<title>Fancy Health Tracker</title>
 <meta name="theme-color" content="#1b1428">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kalorien">
+<meta name="apple-mobile-web-app-title" content="Fancy Health">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -264,7 +264,7 @@
 </head>
 <body>
 <header><div class="head-inner">
-  <h1>Kalorien-Tracker</h1>
+  <h1>Fancy Health Tracker</h1>
   <nav>
     <button data-act="tab" data-tab="diary" class="active">Tagebuch</button>
     <button data-act="tab" data-tab="recipes">Gerichte</button>
@@ -588,7 +588,7 @@
 <div id="toast" role="status" hidden></div>
 
 <script>
-const KEY = 'kalorien-tracker-v1';
+const KEY = 'kalorien-tracker-v1'; // interner Speichername – bleibt so, damit vorhandene Daten erhalten bleiben
 const MEALS = ['Frühstück', 'Mittagessen', 'Abendessen', 'Snacks'];
 const MEAL_TPL_NAMES = ['Mein Frühstück', 'Mein Mittagessen', 'Mein Abendessen', 'Meine Snacks'];
 const DEFAULT_FOODS = [
@@ -2322,11 +2322,11 @@ function renderBackupInfo() {
 }
 async function exportBackup() {
   const now = Date.now();
-  const file = new File([JSON.stringify({ ...S, lastBackup: now }, null, 2)], `kalorien-tracker-${iso(new Date())}.json`, { type: 'application/json' });
+  const file = new File([JSON.stringify({ ...S, lastBackup: now }, null, 2)], `fancy-health-tracker-${iso(new Date())}.json`, { type: 'application/json' });
   let done = false;
   // Auf Handys das Teilen-Menü nutzen („In Dateien sichern“) – Downloads sind dort, vor allem in der Home-Bildschirm-App, unzuverlässig
   if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Kalorien-Tracker Sicherung' }); done = true; }
+    try { await navigator.share({ files: [file], title: 'Fancy Health Tracker Sicherung' }); done = true; }
     catch (e) { if (e.name === 'AbortError') return; }
   }
   if (!done) {

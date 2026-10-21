@@ -1,6 +1,6 @@
 {
-  "name": "Kalorien-Tracker",
-  "short_name": "Kalorien",
+  "name": "Fancy Health Tracker",
+  "short_name": "Fancy Health",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

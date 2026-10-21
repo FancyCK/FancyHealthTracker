@@ -1,8 +1,8 @@
-// Service Worker: macht den Kalorien-Tracker offline startbar.
+// Service Worker: macht den Fancy Health Tracker offline startbar.
 // Strategie „Netz zuerst“: Online kommt immer die neueste Version von GitHub,
 // offline (oder bei sehr langsamem Netz) die zuletzt gespeicherte Kopie.
 // Externe Anfragen (Open Food Facts, Scanner-Bibliothek) laufen direkt ins Netz.
-const CACHE = 'kalorien-tracker-v2';
+const CACHE = 'fancy-health-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 const TIMEOUT = 4000;
 
